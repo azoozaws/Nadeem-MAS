@@ -4,7 +4,7 @@ load_dotenv()
 from tavily import TavilyClient
 
 
-def search(query: str, search_depth: str = "advanced") -> dict:
+def search_engine(query: str, search_depth: str = "advanced") -> dict:
     """Perform a search using the Tavily API.
     Args:
         query (str): The search query.
@@ -32,3 +32,5 @@ def search(query: str, search_depth: str = "advanced") -> dict:
         search_depth=search_depth
     )
     return response
+
+tavily_search_tools = [search_engine]

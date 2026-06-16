@@ -1,5 +1,0 @@
-agent:
-  name: 'AutonomousTaskAgent'
-  model: 'gpt-4o'
-  temperature: 0.1
-  max_retries: 3

@@ -1,227 +1,208 @@
-# My Assistant v1
+# Nadeem-MAS
 
-An autonomous AI-powered task assistant built with LangGraph and LangChain. This agent orchestrates multi-step workflows to extract, research, manage, and summarize tasks while integrating with Notion for persistent task management.
+### A Graph-Based Multi-Agent System for Autonomous Task Management
 
-## 🚀 Features
+---
 
-- **Autonomous Workflow**: Multi-stage agentic pipeline (greet → extract → research → manage → update → summarize)
-- **Notion Integration**: Seamlessly read/write tasks to your Notion database
-- **Web Search**: Leverage Tavily search for research and data gathering
-- **Multi-LLM Support**: Compatible with OpenAI, Google Gemini, Groq, Ollama, and OpenRouter models
-- **State Management**: Built-in agent state tracking and memory management
-- **Logging**: Comprehensive logging system for debugging and monitoring
-- **Docker Ready**: Container support for easy deployment
-- **Configurable**: YAML-based configuration for agent settings and LLM parameters
+## 🚀 Introduction & The NADEEM Concept
 
-## 📋 Requirements
+**Nadeem-MAS** is a graph-based multi-agent system designed to bridge the gap between passive static planning and intelligent, reactive execution. The acronym **N.A.D.E.E.M.** stands for **N**otion-integrated **A**gents for **D**aily **E**valuation, **E**xecution, and **M**anagement.
 
-- Python 3.10 or higher
-- Notion API token (for database integration)
-- API keys for your preferred LLM provider(s)
-- Tavily API key (optional, for search functionality)
+In personal productivity systems, users often struggle with the disconnect between high-level goals (e.g., in a Notion planner) and the actual friction of daily, atomic execution. **Nadeem-MAS** solves this by establishing an autonomous, cyclical multi-agent loop that reads historical progress and current strategic goals, reasons about the gap, dynamically invokes Notion APIs to orchestrate atomic tasks, and summarizes execution state to preserve continuous cross-session memory.
 
-## 🛠️ Installation
+---
 
-### 1. Clone and Setup
+## 🧠 Architecture
 
-```bash
-cd d:\my_assistant
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1  # On Windows PowerShell
-# or
-source .venv/bin/activate    # On macOS/Linux
+Built on **LangGraph**, the system utilizes a specialized multi-agent topology to enforce separation of concerns, optimize token usage, and guarantee runtime safety. Unlike single-agent architectures that rely on large, monolithic prompts, **Nadeem-MAS** distributes responsibilities across three dedicated node types.
+
+### Workflow Diagram
+
+The runtime flow is managed by a stateful directed acyclic graph (DAG) utilizing conditional edges for agentic ReAct loops:
+
+```mermaid
+graph TD
+    __start__([Start]) --> Evaluator[Strategic Evaluator <br/> Read-only]
+    Evaluator --> EvaluatorCond{Tools Condition}
+    EvaluatorCond -- "tool_calls" --> EvaluatorTools[Evaluator Tools <br/> 7 Tools]
+    EvaluatorTools --> Evaluator
+    EvaluatorCond -- "END" --> Executor[Operational Executor <br/> Read/Write]
+    
+    Executor --> ExecutorCond{Tools Condition}
+    ExecutorCond -- "tool_calls" --> ExecutorTools[Executor Tools <br/> 11 Tools]
+    ExecutorTools --> Executor
+    ExecutorCond -- "END" --> Summarizer[Executive Summarizer <br/> Structured Output]
+    
+    Summarizer --> SaveResult[Save Result Node <br/> File I/O]
+    SaveResult --> __end__([End])
+    
+    classDef primary fill:#1f4e79,stroke:#0f2b48,stroke-width:2px,color:#fff;
+    classDef tool fill:#2d8a68,stroke:#1b5c43,stroke-width:2px,color:#fff;
+    classDef cond fill:#d97706,stroke:#b45309,stroke-width:2px,color:#fff;
+    classDef startEnd fill:#4b5563,stroke:#374151,stroke-width:2px,color:#fff;
+    
+    class Evaluator,Executor,Summarizer,SaveResult primary;
+    class EvaluatorTools,ExecutorTools tool;
+    class EvaluatorCond,ExecutorCond cond;
+    class __start__,__end__ startEnd;
 ```
 
-### 2. Install Dependencies
+### Agent Nodes & Responsibilities
 
-```bash
-pip install -e .
-```
+1. **Strategic Evaluator (Read-only)**
+   - **Role:** Analyzes the broader strategic context (monthly/weekly goals) and performance history, then sets the operational direction.
+   - **Operations:** Read-only access to Notion databases.
+   - **Context Retrieval:** Evaluates the user's manual inputs, specific goals, and reads the technical context file saved from the previous day's run (`get_yesterday_context`).
+   - **Output:** Generates a structured analysis (situation summary, past performance review, new goals evaluation, and direct personal growth insights) along with a **Strategic Compass** directive. Crucially, the Evaluator does not generate specific tasks; it defines *what* needs to be achieved, leaving the *how* to the Executor.
 
-Or using the pyproject.toml directly:
+2. **Operational Executor (Read/Write)**
+   - **Role:** Receives the Strategic Compass directive and translates it into specific, atomic, actionable tasks in Notion.
+   - **Operations:** Read, write, update, and delete access.
+   - **Execution Loop:** Utilizes a ReAct loop to iteratively discover, create, update, or archive Notion tasks. 
+   - **Safety Rails:** Strictly forbidden from deleting or editing tasks manually created by the user (`Abdulaziz Aws`), facilitating human-AI alignment instead of destructive overwrites.
 
-```bash
-pip install gradio langchain langchain-community langgraph tavily-python python-dotenv
-```
+3. **Executive Summarizer (Structured Output)**
+   - **Role:** Consolidates the conversation logs and API states into clean, structured schemas.
+   - **Operations:** Does not use tools.
+   - **Structured Schema:** Uses Pydantic `.with_structured_output(DailySummaryOutput)` to enforce two distinct, separate outputs:
+     * `morning_briefing`: A formatted Markdown summary in Arabic designed for the user, summarizing operations, evaluator advice, and a daily productivity tip.
+     * `system_context`: A dense, highly technical summary in English outlining the current system state, warnings, bottlenecks, and tasks assigned. This file acts as the primary feed for tomorrow's **Strategic Evaluator**, ensuring cross-session continuity.
 
-### 3. Environment Setup
+---
 
-Create a `.env` file in the project root:
+## ✨ Key Features
 
-```env
-# LLM Configuration
-OPENAI_API_KEY=your_openai_key
-NOTION_ACCESS_TOKEN=your_notion_token
-TAVILY_API_KEY=your_tavily_key
+- **Advanced Token Optimization (~85-90% Reduction):** Raw payloads from the Notion API contain dozens of fields, inflating the context window. By parsing the response through a custom Pydantic `AgentTask` validator on the fly, redundant metadata is stripped away, reducing context size by ~85-90% and preserving LLM context.
+- **Robust State Management:** Implements LangGraph `AgentState` with `operator.add` reducers on key accumulative lists (e.g., `messages`). This prevents agents from overwriting downstream modifications and ensures step-by-step trace integrity.
+- **LLM Fallback Strategy:** Configured to bound cost and optimize performance. In case of API rate limits or network issues, the system utilizes a robust fallback architecture:
+  * **Primary:** Google `gemini-3.5-flash` (balanced creativity and tool accuracy).
+  * **Fallback:** Google `gemini-3-flash-preview` (high-speed fallback).
+- **Cross-Session Memory Persistence:** Solves the standard LLM state-reset problem by writing session summaries (`system_context`) to file-based logs organized dynamically by `data/guidelines/{year}/{month}/context_{timestamp}.md`. The Evaluator automatically pulls the latest file at startup, creating an unbroken thread of memory across daily boundaries.
+- **Bi-directional User Loop:** The saved context file contains a dedicated section for users to write manual inputs, feedback, or excuses overnight. When the system boots up next morning, it parses these comments to adjust its scheduling.
 
-# Optional: For other LLM providers
-GROQ_API_KEY=your_groq_key
-GOOGLE_API_KEY=your_google_key
-```
+---
 
-## 📁 Project Structure
+## 🛠️ Tech Stack
+
+- **Python (>=3.14):** Core programming language.
+- **LangGraph (>=1.2.0):** State management framework for constructing cycles and conditional branches.
+- **LangChain (>=1.3.0):** LLM integration, prompt templates, and tool abstractions.
+- **Google Gemini API (`gemini-3.5-flash` & `gemini-3-flash-preview`):** Primary language reasoning.
+- **Notion Client (REST API):** Database storage and tasks workspace.
+- **Tavily Search API (>=0.7.25):** External web-search engine for strategic validation and fact checking.
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+
+- **Python 3.14** (or higher) installed.
+- A **Notion Integration Token** and an associated **Database ID** for task management.
+- API keys for Google Gemini and Tavily Search.
+
+### Directory Structure
 
 ```
 my_assistant/
 ├── src/
-│   ├── agents/           # Agent definitions and workflows
-│   │   ├── assistant_agent.py   # Main autonomous agent
-│   │   └── agent_state.py       # State management for agent
-│   ├── core/             # Core functionality
-│   │   ├── memory.py     # Memory management
-│   │   └── reasoning.py  # Reasoning logic
-│   ├── tools/            # Tool implementations
-│   │   ├── notion_tools.py      # Notion API integration
-│   │   └── search_tavily.py     # Tavily search integration
-│   ├── schemas/          # Data schemas
-│   │   └── agent_task.py # Task schema definitions
-│   └── utils/            # Utility functions
-│       └── logger.py     # Logging configuration
+│   ├── agents/           # Agent definitions and Graph topologies
+│   │   ├── agent_state.py        # TypedDict Shared AgentState
+│   │   ├── assistant_agent.py    # LangGraph construction and compilation
+│   │   ├── evaluator.py          # Strategic Evaluator node
+│   │   ├── executor.py           # Operational Executor node
+│   │   └── summarizer.py         # Executive Summarizer node
+│   ├── core/             # Core reasoning algorithms
+│   ├── tools/            # Integration tools
+│   │   ├── notion_tools.py      # Notion CRUD functions and wrapper
+│   │   └── search_tavily.py     # Tavily Search engine wrapper
+│   ├── schemas/          # Pydantic schemas for data sanitization
+│   │   ├── agent_task.py        # Notion task filter schema & token optimizer
+│   │   └── daily_summary_output.py # Pydantic structured output models
+│   └── utils/            # Shared utilities (logger, yesterday context retriever)
 ├── config/
-│   └── agent_config.yaml # Agent configuration
-├── data/
-│   └── memory/           # Agent memory and persistence
-├── notebooks/
-│   └── notion_apis.ipynb # Notion API exploration
-├── tests/
-│   └── test_agents.py    # Unit tests
-├── main.py              # Entry point
-├── pyproject.toml       # Project dependencies
-├── Dockerfile           # Container configuration
-└── README.md           # This file
+├── data/                 # Session persistent directory
+│   ├── feedback/         # User morning briefings (.md)
+│   ├── guidelines/       # System context continuity logs (.md)
+│   └── memory/           # Notion DB mapping metadata (master.json)
+├── main.py               # Main execution script
+└── pyproject.toml        # Dependency definition file
 ```
 
-## ⚙️ Configuration
+### Environment Variables
 
-The agent is configured via `config/agent_config.yaml`:
+Configure a `.env` file in the project root containing the following variables:
 
-```yaml
-agent:
-  name: 'AutonomousTaskAgent'
-  model: 'gpt-4o'
-  temperature: 0.1
-  max_retries: 3
+```env
+# LLM Provider API Keys
+GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Tool & Service Integrations
+TAVILY_API_KEY=your_tavily_search_api_key_here
+NOTION_ACCESS_TOKEN=secret_your_notion_integration_token_here
+
+# LangSmith Observability (Optional)
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_PROJECT=Nadeem-MAS
 ```
 
-**Available Models**:
-- `gpt-4o`, `gpt-4-turbo` (OpenAI)
-- `gemini-pro` (Google Gemini)
-- `groq-models` (Groq)
-- `ollama-models` (Local)
-- `openrouter-models` (OpenRouter)
+### Setup & Installation
 
-## 🚀 Usage
+This project uses [uv](https://github.com/astral-sh/uv) as the primary package manager for blazingly fast dependency management and environment isolation.
 
-### Run the Assistant
+1. **Clone the Repository:**
+   ```bash
+   git clone [https://github.com/your-username/nadeem-mas.git](https://github.com/your-username/nadeem-mas.git)
+   cd nadeem-mas
+   ```
 
-```bash
-python main.py
-```
+2. **Set up a Virtual Environment (using uv):**
 
-### Using the Agent Programmatically
+   **Use uv to create a virtual environment blazingly fast:**
+   ```bash
+   uv venv
+   # Windows PowerShell:
+   .\.venv\Scripts\Activate.ps1
+   # macOS/Linux:
+   source .venv/bin/activate
+   ```
 
-```python
-from src.agents.assistant_agent import AssistantAgent
+3. **Install Dependencies:**
 
-agent = AssistantAgent()
-result = agent.run()
-```
+   **Install in editable mode using uv pip for maximum speed:**
+   ```bash
+   uv pip install -e .
+   ```
+   Or install requirements directly:
+   ```bash
+   uv pip install gradio langchain langchain-community langchain-core langchain-google-genai langchain-groq langchain-ollama langchain-openai langchain-openrouter langgraph langgraph-api langgraph-cli pillow python-dotenv tavily-python
+   ```
 
-### With Gradio UI (if configured)
+4. **Initialize Notion Master Mapping:**
+   Ensure you configure the target Notion Database ID inside `data/memory/Monthly-planner-2026/master.json`:
+   ```json
+   {
+     "metadata": {
+       "master_tasks_db_id": "your_actual_notion_database_uuid"
+     }
+   }
+   ```
 
-The project includes Gradio for web-based interaction:
-
-```python
-import gradio as gr
-# UI implementation in development
-```
-
-## 🐳 Docker Usage
-
-Build and run with Docker:
-
-```bash
-docker build -t my-assistant:v1 .
-docker run -e NOTION_ACCESS_TOKEN=your_token -e OPENAI_API_KEY=your_key my-assistant:v1
-```
-
-## 📊 Workflow Stages
-
-1. **Greet User**: Initialize and greet the user
-2. **Extract Data**: Parse and extract structured data from input
-3. **Researcher**: Conduct research using Tavily search and LLM analysis
-4. **Manager**: Prioritize and organize tasks
-5. **Updater**: Sync changes to Notion database
-6. **Summarizer**: Generate summary and insights
-
-## 🔧 Notion Integration
-
-The assistant reads from and writes to your Notion database. Configure your database ID in:
-
-```
-data/memory/Monthly-planner-2026/master.json
-```
-
-Required metadata:
-```json
-{
-  "metadata": {
-    "master_tasks_db_id": "your_notion_db_id"
-  }
-}
-```
-
-## 📝 Testing
-
-Run the test suite:
-
-```bash
-pytest tests/
-```
-
-## 📦 Dependencies
-
-Key dependencies:
-- **LangChain**: LLM orchestration and tools
-- **LangGraph**: Agentic workflow graphs
-- **Tavily**: Web search integration
-- **Gradio**: Web UI framework
-- **Python-dotenv**: Environment configuration
-
-See `pyproject.toml` for the complete dependency list.
-
-## 🐛 Troubleshooting
-
-### API Key Issues
-- Ensure all required API keys are set in `.env`
-- Check that API keys have proper permissions
-
-### Notion Connection
-- Verify your Notion token is valid
-- Ensure the database ID matches your target database
-- Check that the agent has access to the Notion database
-
-### LLM Issues
-- Verify your LLM API key is correct
-- Check model availability in your subscription tier
-- Review token limits and rate limits
-
-## 📚 Resources
-
-- [LangChain Documentation](https://python.langchain.com)
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph)
-- [Notion API](https://developers.notion.com)
-- [Tavily Search API](https://tavily.com)
-
-## 📄 License
-
-Add your license information here.
-
-## 👤 Author
-
-Created for autonomous task management and AI-powered workflow automation.
+5. **Run the System:**
+   Execute the daily workflow cycle via the main entrypoint:
+   ```bash
+   uv run main.py
+   # (uv run automatically ensures the correct environment is used)
+   ```
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-06-07
+## 👨‍💻 Author
+
+**Abdulaziz Aws**
+- Lead Developer & Project Architect
+- Dynamic automation explorer & AI enthusiast.

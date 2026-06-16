@@ -21,3 +21,8 @@ venv/
 
 notebooks
 data
+.langgraph_api
+architecture_review.md
+smart_assistant_documentation.md
+langgraph.json
+tests

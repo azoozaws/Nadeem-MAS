@@ -7,11 +7,14 @@ class AgentTask(BaseModel):
     """
     id: str
     name: str
-    icon: Optional[str] = None
-    time_spent: Optional[int] = None
+    icon: Optional[dict] = None
+    estimated_time_spent: Optional[int] = None
+    real_time_spent: Optional[int] = None
     status: Optional[str] = None
     categories: List[str] = []
     date: Optional[str] = None
+    created_by: Optional[dict] = None
+    last_edited_by: Optional[dict] = None
 
     @model_validator(mode='before')
     @classmethod
@@ -27,18 +30,11 @@ class AgentTask(BaseModel):
             name = title_list[0].get("plain_text", "")
 
         # Extract Icon
-        icon_val = None
-        if icon_obj := data.get("icon"):
-            icon_type = icon_obj.get("type")
-            if icon_type == "custom_emoji":
-                icon_val = icon_obj.get("custom_emoji", {}).get("url")
-            elif icon_type == "emoji":
-                icon_val = icon_obj.get("emoji")
-            elif icon_type in ["file", "external"]:
-                icon_val = icon_obj.get(icon_type, {}).get("url")
+        icon_val = data.get("icon", {})
 
         # Extract Fields
-        time_spent = props.get("Time", {}).get("number")
+        estimated_time_spent = props.get("Time", {}).get("number")
+        real_time_spent = props.get("Time", {}).get("number")
         
         status = None
         if status_obj := props.get("Status", {}).get("select"):
@@ -52,12 +48,23 @@ class AgentTask(BaseModel):
         if date_obj := props.get("Date", {}).get("date"):
             date_val = date_obj.get("start")
 
+        created_by = None
+        if created_by_obj := props.get("Created by", {}).get("created_by", {}):
+            created_by = {"name": created_by_obj.get("name", None), "type": created_by_obj.get("type", None)}
+
+        last_edited_by = None
+        if last_edited_by_obj := props.get("Last edited by", {}).get("last_edited_by", {}):
+            last_edited_by = {"name": last_edited_by_obj.get("name", None), "type": last_edited_by_obj.get("type", None)}
+        
         return {
             "id": data.get("id"),
             "name": name,
             "icon": icon_val,
-            "time_spent": time_spent,
+            "estimated_time_spent": estimated_time_spent,
+            "real_time_spent": real_time_spent,
             "status": status,
             "categories": categories,
-            "date": date_val
+            "date": date_val,
+            "created_by": created_by,
+            "last_edited_by": last_edited_by
         }
