@@ -36,6 +36,6 @@ async def evaluate_step(state:AgentState):
 
     chain = evaluater_prompt | evaluater_model
 
-    
-    response = await chain.ainvoke({"messages": state["messages"], "current_date": datetime.now().strftime("%Y-%m-%d"), "evaluation_mode": state.get("analysis_type", "Auto-detect"), "yesterday_context": yesterday_context, "user_notes": state.get("user_notes", " ")})
+
+    response = await chain.ainvoke({"messages": state["messages"], "current_date": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), "evaluation_mode": state.get("analysis_type", "Auto-detect"), "yesterday_context": yesterday_context, "user_notes": state.get("user_notes", " ")})
     return {"messages": [response]}

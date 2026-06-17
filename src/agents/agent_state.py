@@ -9,6 +9,8 @@ class AgentState(TypedDict):
     # 2. نوع التحليل لمعرفة مسار العمل الحالي
     analysis_type: Literal["Monthly", "Weekly", "Auto-detect"] = "Auto-detect"
     
+    user_notes: str
+    
     summarize: DailySummaryOutput
     
     # 3. معالجة الأخطاء

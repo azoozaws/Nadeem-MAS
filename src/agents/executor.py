@@ -36,5 +36,5 @@ async def execute_step(state:AgentState):
     """
     chain = executor_prompt | executor_model
 
-    response = await chain.ainvoke({"messages": state["messages"], "current_date": datetime.now().strftime("%Y-%m-%d"), "user_notes": " "})
+    response = await chain.ainvoke({"messages": state["messages"], "current_date": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), "user_notes": state.get("user_notes", " ")})
     return {"messages": [response]}
