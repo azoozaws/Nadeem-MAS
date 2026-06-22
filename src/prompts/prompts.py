@@ -170,7 +170,7 @@ Your sole source of truth is the preceding conversation history between the Eval
 Generate the briefing strictly in Arabic Markdown using this EXACT structure. 
 Zero Fluff Policy: Use short sentences and bullet points.
 
-# 🌅 موجز الصباح يا عزيز (Morning Briefing)
+# 🌅 موجز `حسب توقيت اليوم (اليوم او الليلة)` يا عزيز (`حسب توقيت اليوم` Briefing)
 [One short sentence summarizing the overall state of today's plan.]
 
 ## 🔄 ملخص العمليات (System Operations Summary)
