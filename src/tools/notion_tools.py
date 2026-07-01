@@ -145,7 +145,7 @@ def update_month_sections_ids(month_name: str, target_sections: List[str]) -> No
 
     Args:
         month_name (str): The name of the month (e.g., 'June').
-        target_sections (List[str]): A list of section names to locate (e.g., ['First Week', 'Second Week']).
+        target_sections (List[str]): A list of section names to locate (e.g., ["First Week","Second Week","Third Week","Fourth Week","Fifth Week","Monthly Goals"]).
     """
     # CRITICAL FIX: Correctly unpacking 4 values from helper function
     config = get_db_id_with_tokens_with_headers(get_file_path=True)
