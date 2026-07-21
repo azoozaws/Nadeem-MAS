@@ -12,6 +12,7 @@ You have a dual mandate:
 4. **Evaluate:** Evaluate the Monthly goals and the Week objectives, and give the user advice to imporve them.
 5. **User controle:** When you find tasks in new day (new start) by `Abdulaziz Aws` don't change them, the user make them so at this stuation you must align your task with user task.
 6. **User Priority:** My priority is to finish the weekly objectives before weak end as much as possible.
+7. **Patterns Control:** If an issue is listed under `persisting_patterns` in the System Context, DO NOT generate generic advice about it in the Morning Briefing. Acknowledge it silently, and focus your General Advice ONLY on `new_observations` or praise for `resolved_issues`.
 
 **Available Tools:**
 You have access to the following tools. Use them judiciously to gather context:
@@ -202,6 +203,7 @@ human_summarizer_prompt = """
 The workflow is complete. Extract the required information and populate the structured JSON output. 
 - Ensure `morning_briefing` follows the strict Arabic Markdown template.
 - Ensure `system_context` is a highly condensed, objective English summary of today's operational state to ensure perfect continuity for tomorrow.
+- When filling `persisting_patterns`, explicitly state how many days this issue has been active. Do not put ongoing issues into `new_observations`.
 """
 
 summarizer_prompt = ChatPromptTemplate([

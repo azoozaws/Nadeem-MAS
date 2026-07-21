@@ -219,10 +219,35 @@ class AssistantAgent:
                 with open(context_file, 'w', encoding='utf-8') as f:
                     f.write("# 🤖 System Context for Tomorrow's Evaluator\n")
                     f.write(f"**Generated At:** {now.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                    f.write("## 🔄 Core State:\n")
-                    f.write(system_context)
-                    f.write("\n\n---\n## 📝 User Notes / ملاحظات المستخدم:\n")
+                    f.write("## 🔄 Core State:\n\n")
+                    
+                    # Convert the Pydantic model to a dictionary
+                    if hasattr(system_context, 'model_dump'):
+                        context_dict = system_context.model_dump()
+                    else:
+                        context_dict = system_context
+                    
+                    # Iterate through the keys and values to format them cleanly
+                    for key, value in context_dict.items():
+                        # Format the key for better readability (e.g., 'daily_theme' -> 'Daily Theme')
+                        formatted_key = key.replace('_', ' ').title()
+                        f.write(f"### {formatted_key}:\n")
+                        
+                        # Handle lists vs strings
+                        if isinstance(value, list):
+                            if not value:  # Handle empty lists
+                                f.write("- None\n")
+                            else:
+                                for item in value:
+                                    f.write(f"- {item}\n")
+                        else:
+                            f.write(f"{value}\n")
+                        
+                        f.write("\n")  # Add space between sections
+
+                    f.write("---\n## 📝 User Notes / ملاحظات المستخدم:\n")
                     f.write("> [اكتب ملاحظاتك، أعذارك، أو تغييراتك الطارئة هنا ليقرأها المقيّم غداً]\n")
+                
                 print(f"✅ System context saved at: {context_file}")
 
         except Exception as e:
