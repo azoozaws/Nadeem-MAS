@@ -9,9 +9,9 @@ load_dotenv()
 
 
 
-gemini_3_6_flash_model = ChatGoogleGenerativeAI(api_key=os.getenv("GEMINI_API_KEY"), model="gemini-3.6-flash", temperature=0.6)
+gemini_3_6_flash_model = ChatGoogleGenerativeAI(api_key=os.getenv("GEMINI_API_KEY"), model="gemini-3.6-flash", temperature=0.7)
 
-gemini_3_5_flash_model = ChatGoogleGenerativeAI(api_key=os.getenv("GEMINI_API_KEY"), model="gemini-3.5-flash", temperature=0.6)
+gemini_3_5_flash_model = ChatGoogleGenerativeAI(api_key=os.getenv("GEMINI_API_KEY"), model="gemini-3.5-flash", temperature=0.3)
 
 # groq_openai_120b = ChatGroq(model="openai/gpt-oss-120b", temperature=1.0, api_key=os.getenv("GROQ_API_KEY"))
 
